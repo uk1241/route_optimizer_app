@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:route_optimizer_app/Screens/sign_up_screen.dart';
 import 'package:route_optimizer_app/Widgets/widgets.dart';
 
 /// LoginScreen handles login UI including social sign-in, email/password input,
@@ -14,6 +15,10 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscureText = true; // Controls password field visibility
   bool _rememberMe = false; // Stores state of "Remember me" checkbox
 
+  Future<void> _goToSignUp() async {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => SignUpScreen(),));
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -24,7 +29,10 @@ class _LoginScreenState extends State<LoginScreen> {
         height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.white, Color(0xFFC175F5)],
+            colors: [
+              Color(0xFFFFF6E5),
+              Color(0xFFE5E7FF),
+            ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -222,7 +230,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                 //     ),
                                 //   ],
                                 // ),
-
                                 const SizedBox(height: 6),
 
                                 // Log In button with gradient background
@@ -248,8 +255,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                         shadowColor: Colors.transparent,
                                         padding: EdgeInsets.zero,
                                         shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(12),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
                                         ),
                                       ),
                                       child: const Text(
@@ -274,9 +282,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             children: [
                               const Text("Don't have an account? "),
                               TextButton(
-                                onPressed: () {
-                                  // TODO: Navigate to Sign Up screen
-                                },
+                                onPressed: _goToSignUp,
                                 child: const Text(
                                   "Sign Up",
                                   style: TextStyle(color: Color(0xFF1976D2)),

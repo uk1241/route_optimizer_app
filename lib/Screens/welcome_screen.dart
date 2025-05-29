@@ -1,18 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:route_optimizer_app/Screens/login_screen.dart';
 
-class welcomeScreen extends StatefulWidget {
-  const welcomeScreen({super.key});
+class WelcomeScreen extends StatefulWidget {
+  const WelcomeScreen({super.key});
 
   @override
-  State<welcomeScreen> createState() => _welcomeScreenState();
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
 }
 
-class _welcomeScreenState extends State<welcomeScreen> {
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  Future<void> _goToLogin() async {
+    // Set 'seen_welcome' to true
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('seen_welcome', true);
+
+    // Navigate to LoginScreen
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => LoginScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // debugShowCheckedModeBanner: false,
       backgroundColor: const Color(0xFFE0E0E0),
       body: SafeArea(
         child: Padding(
@@ -20,7 +32,6 @@ class _welcomeScreenState extends State<welcomeScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              /// App Name
               Align(
                 alignment: Alignment.topLeft,
                 child: RichText(
@@ -28,25 +39,15 @@ class _welcomeScreenState extends State<welcomeScreen> {
                     text: "Routico",
                     style: TextStyle(
                       fontSize: 28.0,
-                      fontWeight:
-                          FontWeight.bold, // or whatever weight you want
+                      fontWeight: FontWeight.bold,
                       color: Colors.purple,
                     ),
                   ),
                 ),
               ),
-
-              /// image
               Image.asset('assets/onboarding.png', height: 400),
-
-              ///ArrowButton
               ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => LoginScreen()),
-                  );
-                },
+                onPressed: _goToLogin,
                 style: ElevatedButton.styleFrom(
                   shape: const CircleBorder(),
                   backgroundColor: Colors.purple[200],
@@ -69,7 +70,7 @@ class _welcomeScreenState extends State<welcomeScreen> {
                         ),
                       ),
                       TextSpan(
-                        text: 'Go Further,Smarter',
+                        text: 'Go Further, Smarter',
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 18.0,

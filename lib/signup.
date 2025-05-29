@@ -1,0 +1,266 @@
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:country_code_picker/country_code_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'login_screen.dart'; // Import login screen
+
+class SignUpScreen extends StatefulWidget {
+  const SignUpScreen({super.key});
+
+  @override
+  State<SignUpScreen> createState() => _SignUpScreenState();
+}
+
+class _SignUpScreenState extends State<SignUpScreen> {
+  // Use TextEditingControllers to get the input
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _dateController = TextEditingController();
+
+  final _formKey = GlobalKey<FormState>();
+  bool _isPasswordVisible = false;
+  bool _isLoading = false;
+  String _countryCode = '+44'; // Default country code
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _passwordController.dispose();
+    _dateController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _register() async {
+    // Validate the form
+    if (!_formKey.currentState!.validate()) return;
+    
+    setState(() => _isLoading = true);
+
+    try {
+      // 1. Create user in Firebase Authentication
+      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      User? user = userCredential.user;
+
+      if (user != null) {
+        // 2. Save additional user details to Firestore
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'firstName': _firstNameController.text.trim(),
+          'lastName': _lastNameController.text.trim(),
+          'email': _emailController.text.trim(),
+          'phone': '$_countryCode${_phoneController.text.trim()}',
+          'dateOfBirth': _dateController.text.trim(),
+          'createdAt': Timestamp.now(),
+        });
+
+        // Navigate away after successful signup. The AuthGate will handle showing the home screen.
+        if (mounted) Navigator.of(context).pop();
+      }
+    } on FirebaseAuthException catch (e) {
+      // Show error message to the user
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? "An error occurred")),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    // Main UI build method remains mostly the same, just with controllers
+    return Scaffold(
+       body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFFFF6E5),
+              Color(0xFFE5E7FF),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: _buildFormCard(),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFormCard() {
+    return Container(
+      padding: const EdgeInsets.all(24.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20.0),
+      ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('Sign Up', textAlign: TextAlign.center, style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            const Text('Create an account to continue!', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, color: Colors.grey)),
+            const SizedBox(height: 30),
+            // Updated TextFormFields to use controllers
+            _buildTextFormField(controller: _firstNameController, hint: 'First Name'),
+            const SizedBox(height: 16),
+            _buildTextFormField(controller: _lastNameController, hint: 'Last Name'),
+            const SizedBox(height: 16),
+            _buildTextFormField(controller: _emailController, hint: 'Email', keyboardType: TextInputType.emailAddress),
+            const SizedBox(height: 16),
+            _buildDateField(),
+            const SizedBox(height: 16),
+            _buildPhoneField(),
+            const SizedBox(height: 16),
+            _buildPasswordField(),
+            const SizedBox(height: 30),
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _buildRegisterButton(),
+            const SizedBox(height: 24),
+            _buildLoginLink(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Update helper methods to take controllers
+  Widget _buildTextFormField({required TextEditingController controller, required String hint, TextInputType keyboardType = TextInputType.text}) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        hintText: hint,
+        contentPadding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 20.0),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
+      ),
+      validator: (value) => value!.isEmpty ? 'This field cannot be empty' : null,
+    );
+  }
+
+  Widget _buildPasswordField() {
+    return TextFormField(
+      controller: _passwordController,
+      obscureText: !_isPasswordVisible,
+      decoration: InputDecoration(
+        hintText: 'Password',
+        contentPadding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 20.0),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
+        suffixIcon: IconButton(
+          icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off),
+          onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+        ),
+      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) return 'Please enter a password';
+        if (value.length < 6) return 'Password must be at least 6 characters';
+        return null;
+      },
+    );
+  }
+
+  Widget _buildPhoneField() {
+    return TextFormField(
+      controller: _phoneController,
+      keyboardType: TextInputType.phone,
+      decoration: InputDecoration(
+        hintText: 'Phone Number',
+        contentPadding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 20.0),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
+        prefixIcon: CountryCodePicker(
+          onChanged: (country) => _countryCode = country.dialCode!,
+          initialSelection: 'GB',
+        ),
+      ),
+       validator: (value) => value!.isEmpty ? 'Please enter a phone number' : null,
+    );
+  }
+
+  Widget _buildDateField() {
+     return TextFormField(
+      controller: _dateController,
+      readOnly: true,
+      decoration: InputDecoration(
+        hintText: 'Date of Birth',
+        contentPadding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 20.0),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
+        suffixIcon: IconButton(
+          icon: const Icon(Icons.calendar_today_outlined),
+          onPressed: () async {
+            DateTime? pickedDate = await showDatePicker(
+              context: context,
+              initialDate: DateTime.now(),
+              firstDate: DateTime(1900),
+              lastDate: DateTime.now(),
+            );
+            if (pickedDate != null) {
+              _dateController.text = DateFormat('dd/MM/yyyy').format(pickedDate);
+            }
+          },
+        ),
+      ),
+      validator: (value) => value!.isEmpty ? 'Please select a date' : null,
+    );
+  }
+
+  // Update buttons to call the Firebase method and navigate
+  Widget _buildRegisterButton() {
+    return ElevatedButton(
+      onPressed: _register,
+      style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16.0)),
+      child: const Text('Register', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+    );
+  }
+
+Widget _buildLoginLink() {
+  return Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      const Text("Already have an account? "),
+      TextButton(
+        onPressed: () {
+          // Navigate back to the login screen
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => LoginScreen()),
+            );
+          }
+        },
+        child: const Text(
+          'Login',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF3D5CFF),
+          ),
+        ),
+      ),
+    ],
+  );
+}
+}
