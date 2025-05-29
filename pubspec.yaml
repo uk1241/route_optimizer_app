@@ -54,6 +54,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/
+    - assets/buttonIcons/
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 
